@@ -199,12 +199,25 @@
                     <div class="bg-black/20 p-8 rounded-2xl max-w-sm w-full border border-white/10 shadow-inner">
                         <i class="fas fa-sliders-h text-4xl text-indigo-300 mb-4"></i>
                         <h3 class="text-xl font-bold mb-2">Kontrol Kelas</h3>
-                        <p class="text-sm text-indigo-200 mb-6">Gunakan fitur ini untuk memulai sesi atau lagu baru. Semua kata yang sudah terkumpul akan dihapus.</p>
                         
-                        <button id="clearWordsBtn" class="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all transform active:scale-95 flex justify-center items-center gap-2">
-                            <i class="fas fa-trash-alt"></i> <span>Bersihkan Semua Kata</span>
-                        </button>
-                        <p id="clearFeedback" class="text-xs text-green-300 mt-3 font-semibold h-4 opacity-0 transition-opacity"></p>
+                        <!-- Area Input PIN -->
+                        <div id="pinArea" class="flex flex-col gap-3 w-full mt-2">
+                            <p class="text-sm text-indigo-200 mb-2">Masukkan PIN Guru untuk mengakses pengaturan.</p>
+                            <input type="password" id="adminPinInput" placeholder="Masukkan PIN" class="text-center w-full px-4 py-3 rounded-xl text-gray-800 font-bold focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-inner">
+                            <button id="unlockBtn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all transform active:scale-95">
+                                <i class="fas fa-unlock mr-2"></i> Buka Pengaturan
+                            </button>
+                            <p id="pinFeedback" class="text-xs text-red-300 mt-1 font-semibold h-4 opacity-0 transition-opacity"></p>
+                        </div>
+
+                        <!-- Area Tombol Kontrol (Disembunyikan sebelum PIN benar) -->
+                        <div id="controlArea" class="hidden flex-col gap-3 w-full mt-2">
+                            <p class="text-sm text-green-300 mb-4 font-semibold"><i class="fas fa-check-circle mr-1"></i> Akses Guru Terbuka</p>
+                            <button id="clearWordsBtn" class="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all transform active:scale-95 flex justify-center items-center gap-2">
+                                <i class="fas fa-trash-alt"></i> <span>Bersihkan Semua Kata</span>
+                            </button>
+                            <p id="clearFeedback" class="text-xs text-green-300 mt-3 font-semibold h-4 opacity-0 transition-opacity"></p>
+                        </div>
                     </div>
                 </div>
 
@@ -284,6 +297,39 @@
         const tab2Content = document.getElementById('tab2Content');
         const clearWordsBtn = document.getElementById('clearWordsBtn');
         const clearFeedback = document.getElementById('clearFeedback');
+
+        // PIN Elements
+        const pinArea = document.getElementById('pinArea');
+        const controlArea = document.getElementById('controlArea');
+        const adminPinInput = document.getElementById('adminPinInput');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const pinFeedback = document.getElementById('pinFeedback');
+
+        // PIN RAHASIA GURU (Silakan ubah angka ini sesuai keinginan Anda)
+        const GURU_PIN = "123456";
+
+        // Logika Membuka Kunci PIN
+        function checkPin() {
+            if (adminPinInput.value === GURU_PIN) {
+                pinArea.classList.add('hidden');
+                controlArea.classList.remove('hidden');
+                controlArea.classList.add('flex');
+                adminPinInput.value = ''; // bersihkan input
+            } else {
+                pinFeedback.textContent = "PIN Salah!";
+                pinFeedback.style.opacity = '1';
+                adminPinInput.classList.add('shake');
+                setTimeout(() => {
+                    pinFeedback.style.opacity = '0';
+                    adminPinInput.classList.remove('shake');
+                }, 2000);
+            }
+        }
+
+        unlockBtn.addEventListener('click', checkPin);
+        adminPinInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPin();
+        });
 
         // QR Code Modal Elements
         const qrModal = document.getElementById('qrModal');
