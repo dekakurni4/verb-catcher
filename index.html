@@ -233,12 +233,11 @@
         if (!firebaseConfig) {
             firebaseConfig = {
                 apiKey: "AIzaSyA_bGgj1VLVrpM7lkroPn1Ej7_WSFjcyy0",
-                authDomain: "verbcatcher.firebaseapp.com",
-                projectId: "verbcatcher",
-                storageBucket: "verbcatcher.firebasestorage.app",
-                messagingSenderId: "194118747323",
-                appId: "1:194118747323:web:5e7585d58733598a28d59e",
-                measurementId: "G-BGLYXM21B7"
+                authDomain: "verbcatcher.firebaseapp.com",
+                projectId: "verbcatcher",
+                storageBucket: "verbcatcher.firebasestorage.app",
+                messagingSenderId: "194118747323",
+                appId: "1:194118747323:web:5e7585d58733598a28d59e",
             };
         }
         // =========================================================================
@@ -601,7 +600,15 @@
 
             } catch (error) {
                 console.error("Authentication Error:", error);
-                loadingState.innerHTML = `<i class="fas fa-exclamation-triangle text-3xl text-red-400 mb-2"></i><p>Gagal memuat sesi kelas.</p>`;
+                loadingState.innerHTML = `
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-3 drop-shadow-lg"></i>
+                    <p class="font-bold text-red-300 text-lg">Gagal memuat sesi kelas.</p>
+                    <div class="mt-3 text-left w-full bg-black/40 p-3 rounded-lg border border-red-500/30">
+                        <p class="text-xs text-red-200 font-mono break-words">${error.message}</p>
+                    </div>
+                    <p class="text-xs text-indigo-200 mt-4 text-center max-w-xs">
+                        Jika Anda menggunakan GitHub Pages, pastikan domain (misal: nama.github.io) sudah didaftarkan di Firebase: <br><b>Authentication > Settings > Authorized Domains</b>.
+                    </p>`;
             }
         }
 
