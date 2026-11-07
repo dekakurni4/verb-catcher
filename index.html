@@ -222,13 +222,39 @@
 
         // Global environment variables provided by the platform
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'verb-catcher-default-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        let firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         const customToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // Ensure config exists before initializing
-        if (Object.keys(firebaseConfig).length === 0) {
-            console.error("Firebase config is missing.");
-            showFeedback("Sistem Error: Konfigurasi database tidak ditemukan.", "error");
+        // =========================================================================
+        // PENGATURAN UNTUK GITHUB PAGES (WAJIB DIISI AGAR TIDAK LOADING TERUS)
+        // =========================================================================
+        
+        // JIKA BERJALAN DI GITHUB, GUNAKAN KONFIGURASI MANUAL INI
+        if (!firebaseConfig) {
+            firebaseConfig = {
+                apiKey: "AIzaSyA_bGgj1VLVrpM7lkroPn1Ej7_WSFjcyy0",
+                authDomain: "verbcatcher.firebaseapp.com",
+                projectId: "verbcatcher",
+                storageBucket: "verbcatcher.firebasestorage.app",
+                messagingSenderId: "194118747323",
+                appId: "1:194118747323:web:5e7585d58733598a28d59e",
+                measurementId: "G-BGLYXM21B7"
+            };
+        }
+        // =========================================================================
+
+        // Pastikan konfigurasi sudah diisi oleh pengguna (bukan placeholder)
+        if (firebaseConfig.apiKey === "PASTE_API_KEY_ANDA_DISINI") {
+            console.error("Firebase config is missing or still using placeholder.");
+            document.getElementById('loadingState').innerHTML = `
+                <i class="fas fa-database text-5xl text-red-400 mb-4 drop-shadow-lg"></i>
+                <p class="text-center font-extrabold text-red-300 text-xl mb-2">Database Belum Terhubung!</p>
+                <p class="text-center text-sm text-indigo-100 bg-black/30 p-4 rounded-xl border border-red-400/30">
+                    Anda mendeploy web ini di server luar (GitHub/Google Sites).<br>
+                    Silakan masukkan kode <b>firebaseConfig</b> Anda ke dalam kode HTML agar aplikasi bisa berjalan.
+                </p>
+            `;
+            throw new Error("Konfigurasi Firebase masih berupa teks 'PASTE_...'. Hentikan eksekusi agar tidak terjadi error.");
         }
 
         const app = initializeApp(firebaseConfig);
