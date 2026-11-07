@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listen & Catch the Verbs!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .word-badge {
+            transition: all 0.3s ease;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .word-badge:hover {
+            transform: scale(1.1);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-white flex flex-col items-center justify-start pt-8 pb-12 px-4">
+
+    <!-- QR Code Modal Overlay -->
+    <div id="qrModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex justify-center items-center transition-opacity duration-300 opacity-0">
+        <div class="bg-white p-8 md:p-10 rounded-3xl flex flex-col items-center max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="qrModalContent">
+            <h3 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-2 text-center">Scan untuk Join!</h3>
+            <p class="text-gray-500 text-center mb-6">Arahkan kamera ponsel ke QR code ini</p>
+            
+            <div id="qrcode" class="mb-6 p-4 border-4 border-indigo-100 rounded-2xl bg-white shadow-inner flex justify-center"></div>
+            
+            <div class="w-full mb-6">
+                <label class="text-xs text-gray-500 font-semibold mb-1 block">Link Web (Pastikan berawalan https://):</label>
+                <input type="url" id="joinUrlInput" class="text-sm break-all font-mono bg-gray-100 p-3 rounded-lg w-full border border-gray-200 focus:outline-none focus:border-indigo-400" />
+                <button id="updateQrBtn" class="mt-2 text-xs bg-indigo-100 text-indigo-700 py-2 px-3 rounded-md hover:bg-indigo-200 w-full font-semibold transition-colors">
+                    <i class="fas fa-sync-alt mr-1"></i> Perbarui QR Code
+                </button>
+            </div>
+            
+            <button id="closeQrBtn" class="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-6 rounded-xl w-full text-lg shadow-lg transform active:scale-95 transition-all">
+                <i class="fas fa-times mr-2"></i> Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating QR Button for Teacher -->
+    <button id="showQrBtn" class="fixed top-4 right-4 z-40 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white text-sm font-semibold py-2 px-4 rounded-full transition-all flex items-center shadow-lg hover:scale-105">
+        <i class="fas fa-qrcode mr-2 text-yellow-300"></i> Scan QR
+    </button>
+
+    <!-- Header Section -->
+    <header class="text-center mb-8 max-w-2xl w-full mt-6 md:mt-2">
+        <h1 class="text-4xl md:text-5xl font-extrabold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200 drop-shadow-sm">
+            <i class="fas fa-headphones-alt mr-2"></i> Verb Catcher
+        </h1>
+        <p class="text-lg md:text-xl font-light text-indigo-100">
+            Dengarkan lagunya, tulis <strong class="font-semibold text-white border-b-2 border-yellow-400">Kata Kerja (Verbs)</strong> yang kamu dengar!
+        </p>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="w-full max-w-4xl flex flex-col md:flex-row gap-6">
+        
+        <!-- Left/Top: Student Input Area -->
+        <section class="flex-1">
+            <div class="glass-panel rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 to-orange-500"></div>
+                
+                <h2 class="text-2xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-keyboard mr-2 text-yellow-300"></i> Ketik di sini
+                </h2>
+                
+                <form id="verbForm" class="flex flex-col gap-4" onsubmit="event.preventDefault();">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="verbInput" 
+                            placeholder="Contoh: listen, run, fly..." 
+                            class="w-full px-5 py-4 rounded-xl text-gray-800 text-lg md:text-xl font-semibold focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-inner"
+                            autocomplete="off"
+                            required
+                        >
+                        <div id="statusIcon" class="absolute right-4 top-4 text-green-500 hidden">
+                            <i class="fas fa-check-circle text-2xl"></i>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        id="submitBtn"
+                        class="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-gray-900 font-bold py-4 rounded-xl text-xl transition-all shadow-lg transform active:scale-95 flex justify-center items-center gap-2"
+                    >
+                        <span>Kirim Kata</span>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+
+                <!-- Feedback Message -->
+                <div id="feedbackMsg" class="mt-4 text-center font-medium text-sm h-6 opacity-0 transition-opacity">
+                    <!-- Status message will appear here -->
+                </div>
+            </div>
+
+            <!-- Instructions for Students -->
+            <div class="mt-6 text-sm text-indigo-200 text-center md:text-left bg-black/20 rounded-xl p-4">
+                <p><i class="fas fa-info-circle mr-1"></i> <strong>Instruksi:</strong></p>
+                <ul class="list-disc list-inside mt-2 space-y-1">
+                    <li>Dengarkan lagu yang diputar guru dengan saksama.</li>
+                    <li>Fokus mencari kata kerja (Verb).</li>
+                    <li>Ketik satu kata per pengiriman.</li>
+                    <li>Kamu bisa mengirim kata sebanyak-banyaknya!</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Right/Bottom: Real-time Word Cloud Area -->
+        <section class="flex-[1.5] w-full">
+            <div class="glass-panel rounded-3xl p-6 md:p-8 shadow-2xl h-full min-h-[400px] flex flex-col relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-400 to-blue-500"></div>
+                
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-white/20 pb-4 gap-4">
+                    <div class="flex space-x-1 bg-black/20 p-1 rounded-xl">
+                        <button id="tabCloudBtn" class="px-4 py-2 bg-white/20 shadow-sm rounded-lg font-bold text-sm transition-all flex items-center">
+                            <i class="fas fa-cloud mr-2 text-cyan-300"></i> Hasil
+                        </button>
+                        <button id="tabSettingsBtn" class="px-4 py-2 hover:bg-white/10 text-white/70 rounded-lg font-bold text-sm transition-all flex items-center">
+                            <i class="fas fa-cog mr-2"></i> Pengaturan
+                        </button>
+                    </div>
+                    <div class="text-sm font-semibold bg-white/20 px-3 py-1 rounded-full flex items-center gap-2">
+                        <span id="totalWords">0</span> Kata Terkumpul
+                        <span class="relative flex h-3 w-3 ml-1">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- TAB 1 CONTENT: Live Word Cloud -->
+                <div id="tab1Content" class="flex-1 flex flex-col relative w-full h-full">
+                    <!-- Initial Loading State -->
+                    <div id="loadingState" class="flex-1 flex flex-col items-center justify-center text-indigo-200">
+                        <div class="loader mb-4"></div>
+                        <p>Menghubungkan ke kelas...</p>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="emptyState" class="hidden flex-1 flex flex-col items-center justify-center text-indigo-200 opacity-70">
+                        <i class="fas fa-music text-6xl mb-4 opacity-50"></i>
+                        <p class="text-center">Belum ada kata yang ditangkap.<br>Jadilah yang pertama mengirim!</p>
+                    </div>
+
+                    <!-- Word Cloud Container -->
+                    <div id="wordCloudContainer" class="flex-1 flex flex-wrap content-start justify-center gap-3 overflow-y-auto pb-4 hidden custom-scrollbar">
+                        <!-- Words will be injected here via JS -->
+                    </div>
+                </div>
+
+                <!-- TAB 2 CONTENT: Settings -->
+                <div id="tab2Content" class="hidden flex-1 flex flex-col items-center justify-center text-center">
+                    <div class="bg-black/20 p-8 rounded-2xl max-w-sm w-full border border-white/10 shadow-inner">
+                        <i class="fas fa-sliders-h text-4xl text-indigo-300 mb-4"></i>
+                        <h3 class="text-xl font-bold mb-2">Kontrol Kelas</h3>
+                        <p class="text-sm text-indigo-200 mb-6">Gunakan fitur ini untuk memulai sesi atau lagu baru. Semua kata yang sudah terkumpul akan dihapus.</p>
+                        
+                        <button id="clearWordsBtn" class="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all transform active:scale-95 flex justify-center items-center gap-2">
+                            <i class="fas fa-trash-alt"></i> <span>Bersihkan Semua Kata</span>
+                        </button>
+                        <p id="clearFeedback" class="text-xs text-green-300 mt-3 font-semibold h-4 opacity-0 transition-opacity"></p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // MENGGANTI getAuth dan setPersistence menjadi initializeAuth
+        import { initializeAuth, signInAnonymously, signInWithCustomToken, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global environment variables provided by the platform
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'verb-catcher-default-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const customToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Ensure config exists before initializing
+        if (Object.keys(firebaseConfig).length === 0) {
+            console.error("Firebase config is missing.");
+            showFeedback("Sistem Error: Konfigurasi database tidak ditemukan.", "error");
+        }
+
+        const app = initializeApp(firebaseConfig);
+        
+        // FIX GOOGLE SITES HANG: Mencegah Firebase melirik IndexedDB sejak awal inisialisasi
+        const auth = initializeAuth(app, {
+            persistence: inMemoryPersistence
+        });
+        
+        const db = getFirestore(app);
+        let currentUserId = null;
+
+        // UI Elements
+        const form = document.getElementById('verbForm');
+        const input = document.getElementById('verbInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const wordCloudContainer = document.getElementById('wordCloudContainer');
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
+        const totalWordsEl = document.getElementById('totalWords');
+        const statusIcon = document.getElementById('statusIcon');
+        const feedbackMsg = document.getElementById('feedbackMsg');
+
+        // Tab & Settings Elements
+        const tabCloudBtn = document.getElementById('tabCloudBtn');
+        const tabSettingsBtn = document.getElementById('tabSettingsBtn');
+        const tab1Content = document.getElementById('tab1Content');
+        const tab2Content = document.getElementById('tab2Content');
+        const clearWordsBtn = document.getElementById('clearWordsBtn');
+        const clearFeedback = document.getElementById('clearFeedback');
+
+        // QR Code Modal Elements
+        const qrModal = document.getElementById('qrModal');
+        const showQrBtn = document.getElementById('showQrBtn');
+        const closeQrBtn = document.getElementById('closeQrBtn');
+        const qrCodeContainer = document.getElementById('qrcode');
+        const joinUrlInput = document.getElementById('joinUrlInput');
+        const updateQrBtn = document.getElementById('updateQrBtn');
+        let qrGenerated = false;
+
+        // QR Code Logic
+        function generateQR(url) {
+            qrCodeContainer.innerHTML = ''; // Bersihkan QR sebelumnya
+            new QRCode(qrCodeContainer, {
+                text: url,
+                width: 220,
+                height: 220,
+                colorDark : "#1f2937",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        function toggleQrModal(show) {
+            if (show) {
+                qrModal.classList.remove('hidden');
+                setTimeout(() => {
+                    qrModal.classList.remove('opacity-0');
+                    document.getElementById('qrModalContent').classList.remove('scale-95');
+                }, 10);
+
+                if (!qrGenerated) {
+                    let currentUrl = window.location.href;
+                    
+                    // Coba ambil URL asli jika web berjalan di dalam iframe (mode preview)
+                    try {
+                        if (window.top !== window.self) {
+                            currentUrl = document.referrer || window.top.location.href;
+                        }
+                    } catch (e) { /* Abaikan error CORS */ }
+                    
+                    // Fallback jika URL masih berupa format internal browser
+                    if (currentUrl.includes('about:srcdoc') || currentUrl.includes('blob:')) {
+                        currentUrl = "https://"; // Kosongkan/siapkan untuk diisi manual
+                    }
+
+                    joinUrlInput.value = currentUrl;
+                    generateQR(currentUrl);
+                    qrGenerated = true;
+                }
+            } else {
+                qrModal.classList.add('opacity-0');
+                document.getElementById('qrModalContent').classList.add('scale-95');
+                setTimeout(() => {
+                    qrModal.classList.add('hidden');
+                }, 300); // Sesuaikan dengan durasi animasi tailwind
+            }
+        }
+
+        updateQrBtn.addEventListener('click', () => {
+            const newUrl = joinUrlInput.value.trim();
+            if(newUrl) {
+                generateQR(newUrl);
+                // Menampilkan sedikit efek bahwa sudah terupdate
+                updateQrBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Diperbarui!';
+                updateQrBtn.classList.replace('text-indigo-700', 'text-green-700');
+                updateQrBtn.classList.replace('bg-indigo-100', 'bg-green-100');
+                setTimeout(() => {
+                    updateQrBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Perbarui QR Code';
+                    updateQrBtn.classList.replace('text-green-700', 'text-indigo-700');
+                    updateQrBtn.classList.replace('bg-green-100', 'bg-indigo-100');
+                }, 2000);
+            }
+        });
+
+        // Event listeners untuk QR Code
+        showQrBtn.addEventListener('click', () => toggleQrModal(true));
+        closeQrBtn.addEventListener('click', () => toggleQrModal(false));
+        // Tutup modal jika klik area luar pop-up
+        qrModal.addEventListener('click', (e) => {
+            if (e.target === qrModal) toggleQrModal(false);
+        });
+
+        // Tab Switching Logic
+        tabCloudBtn.addEventListener('click', () => {
+            tabCloudBtn.className = "px-4 py-2 bg-white/20 shadow-sm rounded-lg font-bold text-sm transition-all flex items-center";
+            tabSettingsBtn.className = "px-4 py-2 hover:bg-white/10 text-white/70 rounded-lg font-bold text-sm transition-all flex items-center";
+            tab1Content.classList.remove('hidden');
+            tab1Content.classList.add('flex');
+            tab2Content.classList.add('hidden');
+            tab2Content.classList.remove('flex');
+        });
+
+        tabSettingsBtn.addEventListener('click', () => {
+            tabSettingsBtn.className = "px-4 py-2 bg-white/20 shadow-sm rounded-lg font-bold text-sm transition-all flex items-center";
+            tabCloudBtn.className = "px-4 py-2 hover:bg-white/10 text-white/70 rounded-lg font-bold text-sm transition-all flex items-center";
+            tab2Content.classList.remove('hidden');
+            tab2Content.classList.add('flex');
+            tab1Content.classList.add('hidden');
+            tab1Content.classList.remove('flex');
+        });
+
+        // Helper to show temporary feedback
+        function showFeedback(msg, type = "success") {
+            feedbackMsg.textContent = msg;
+            feedbackMsg.className = `mt-4 text-center font-bold text-sm h-6 transition-opacity duration-300 ${type === 'error' ? 'text-red-300' : 'text-green-300'}`;
+            feedbackMsg.style.opacity = '1';
+            
+            if(type === 'success') {
+                statusIcon.classList.remove('hidden');
+                setTimeout(() => statusIcon.classList.add('hidden'), 1500);
+            } else {
+                form.classList.add('shake');
+                setTimeout(() => form.classList.remove('shake'), 500);
+            }
+
+            setTimeout(() => {
+                feedbackMsg.style.opacity = '0';
+            }, 2500);
+        }
+
+        // Color palette for word cloud based on frequency
+        const colors = [
+            'bg-white/20 text-white',           // 1-2 count
+            'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30', // 3-4 count
+            'bg-blue-500 text-white shadow-lg shadow-blue-500/40', // 5-6 count
+            'bg-purple-500 text-white shadow-lg shadow-purple-500/40', // 7-8 count
+            'bg-yellow-400 text-gray-900 shadow-lg shadow-yellow-400/50', // 9-10 count
+            'bg-orange-500 text-white shadow-xl shadow-orange-500/50', // >10 count
+        ];
+
+        function getColorClass(count) {
+            if (count <= 2) return colors[0];
+            if (count <= 4) return colors[1];
+            if (count <= 6) return colors[2];
+            if (count <= 8) return colors[3];
+            if (count <= 10) return colors[4];
+            return colors[5];
+        }
+
+        // Initialize App Authentication & Firestore Subscription
+        async function initApp() {
+            // Indikator visual jika proses tertahan
+            const slowLoadingTimer = setTimeout(() => {
+                const loadingText = document.querySelector('#loadingState p');
+                if (loadingText) loadingText.innerHTML = "Menyesuaikan keamanan Google Sites...<br><span class='text-xs'>(Mohon tunggu sebentar)</span>";
+            }, 3000);
+
+            try {
+                // (Baris setPersistence dihilangkan karena sudah diatur di initializeAuth di atas)
+
+                // Rule 3: Auth Before Queries
+                if (customToken) {
+                    await signInWithCustomToken(auth, customToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                clearTimeout(slowLoadingTimer);
+                currentUserId = auth.currentUser.uid;
+                
+                // Rule 1: Strict Paths
+                // We use public data because the teacher and all students need to see everyone's submissions
+                const submissionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'verb_submissions');
+
+                // Clear Words Logic (with 2-step confirmation)
+                let clearConfirmState = false;
+                clearWordsBtn.addEventListener('click', async () => {
+                    if (!clearConfirmState) {
+                        clearConfirmState = true;
+                        clearWordsBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Yakin hapus semua?</span>';
+                        clearWordsBtn.classList.replace('from-red-500', 'from-yellow-500');
+                        clearWordsBtn.classList.replace('to-pink-500', 'to-orange-500');
+                        
+                        // Reset if not clicked again within 3 seconds
+                        setTimeout(() => {
+                            if (clearConfirmState) resetClearBtn();
+                        }, 3000);
+                        return;
+                    }
+
+                    // Proceed to delete
+                    clearWordsBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>Menghapus...</span>';
+                    clearWordsBtn.disabled = true;
+
+                    try {
+                        const querySnapshot = await getDocs(submissionsRef);
+                        const deletePromises = [];
+                        
+                        querySnapshot.forEach((document) => {
+                            deletePromises.push(deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'verb_submissions', document.id)));
+                        });
+                        
+                        await Promise.all(deletePromises);
+                        
+                        clearFeedback.textContent = "Berhasil dibersihkan!";
+                        clearFeedback.classList.replace('text-red-300', 'text-green-300');
+                        clearFeedback.style.opacity = '1';
+                        setTimeout(() => { clearFeedback.style.opacity = '0'; }, 3000);
+                        
+                        // Auto switch back to Result tab after clear
+                        setTimeout(() => { tabCloudBtn.click(); }, 1000);
+                        
+                    } catch (err) {
+                        console.error("Gagal menghapus:", err);
+                        clearFeedback.textContent = "Gagal menghapus. Coba lagi.";
+                        clearFeedback.classList.replace('text-green-300', 'text-red-300');
+                        clearFeedback.style.opacity = '1';
+                        setTimeout(() => { clearFeedback.style.opacity = '0'; }, 3000);
+                    } finally {
+                        resetClearBtn();
+                    }
+                });
+
+                function resetClearBtn() {
+                    clearConfirmState = false;
+                    clearWordsBtn.disabled = false;
+                    clearWordsBtn.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Bersihkan Semua Kata</span>';
+                    clearWordsBtn.className = "w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all transform active:scale-95 flex justify-center items-center gap-2";
+                }
+
+                // Rule 2 & Rule 3: Simple query with error callback
+                onSnapshot(submissionsRef, (snapshot) => {
+                    loadingState.classList.add('hidden');
+                    
+                    if (snapshot.empty) {
+                        emptyState.classList.remove('hidden');
+                        wordCloudContainer.classList.add('hidden');
+                        totalWordsEl.textContent = "0";
+                        return;
+                    }
+
+                    emptyState.classList.add('hidden');
+                    wordCloudContainer.classList.remove('hidden');
+
+                    // Process frequencies
+                    const wordFrequencies = {};
+                    let totalValidEntries = 0;
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.word) {
+                            // Normalize word
+                            const cleanWord = data.word.toLowerCase().trim();
+                            if(cleanWord) {
+                                wordFrequencies[cleanWord] = (wordFrequencies[cleanWord] || 0) + 1;
+                                totalValidEntries++;
+                            }
+                        }
+                    });
+
+                    // Sort words by frequency (descending)
+                    const sortedWords = Object.entries(wordFrequencies).sort((a, b) => b[1] - a[1]);
+
+                    // Render to UI
+                    renderWordCloud(sortedWords);
+                    totalWordsEl.textContent = totalValidEntries;
+
+                }, (error) => {
+                    console.error("Error fetching live data:", error);
+                    showFeedback("Terputus dari server. Mencoba menghubungkan kembali...", "error");
+                });
+
+                // Handle Form Submission
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    if (!auth.currentUser) {
+                        showFeedback("Belum terhubung ke sesi.", "error");
+                        return;
+                    }
+
+                    const rawWord = input.value.trim();
+                    
+                    // Basic Validation
+                    if (!rawWord) return;
+                    if (rawWord.length > 20) {
+                        showFeedback("Kata terlalu panjang! Maks 20 huruf.", "error");
+                        return;
+                    }
+                    if (rawWord.split(" ").length > 2) {
+                         showFeedback("Hanya ketik 1-2 kata (Verb phrase).", "error");
+                         return;
+                    }
+
+                    // Disable input temporarily
+                    const originalBtnContent = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Mengirim...';
+                    submitBtn.disabled = true;
+                    input.disabled = true;
+
+                    try {
+                        await addDoc(submissionsRef, {
+                            word: rawWord,
+                            senderId: currentUserId,
+                            timestamp: serverTimestamp()
+                        });
+                        
+                        input.value = '';
+                        input.focus();
+                        showFeedback("Kerja bagus! Kata berhasil ditangkap.");
+                    } catch (err) {
+                        console.error("Error adding document: ", err);
+                        showFeedback("Gagal mengirim kata. Coba lagi.", "error");
+                    } finally {
+                        submitBtn.innerHTML = originalBtnContent;
+                        submitBtn.disabled = false;
+                        input.disabled = false;
+                        // For mobile touch devices, automatically unfocus to let them see results or keep focus to let them type again
+                        // input.focus() is usually preferred for rapid fire typing
+                        setTimeout(() => input.focus(), 100);
+                    }
+                });
+
+            } catch (error) {
+                console.error("Authentication Error:", error);
+                loadingState.innerHTML = `<i class="fas fa-exclamation-triangle text-3xl text-red-400 mb-2"></i><p>Gagal memuat sesi kelas.</p>`;
+            }
+        }
+
+        // Render logic for the word cloud
+        function renderWordCloud(wordEntries) {
+            wordCloudContainer.innerHTML = '';
+            
+            // Find max count to scale fonts relatively (optional, but good for UX)
+            const maxCount = wordEntries.length > 0 ? wordEntries[0][1] : 1;
+
+            wordEntries.forEach(([word, count]) => {
+                const el = document.createElement('div');
+                
+                // Calculate font size (min 1rem, max ~2.5rem based on frequency relative to max)
+                // Base size + (count factor)
+                let scaleFactor = (count / maxCount);
+                if (maxCount === 1) scaleFactor = 0.2; // if everything is 1, keep it small
+                
+                const minRem = 1;
+                const maxRem = 2.8;
+                const fontSizeRem = minRem + (scaleFactor * (maxRem - minRem));
+
+                const colorClass = getColorClass(count);
+
+                el.className = `word-badge inline-flex items-center justify-center rounded-2xl px-4 py-2 font-bold cursor-default ${colorClass}`;
+                el.style.fontSize = `${fontSizeRem}rem`;
+                
+                // Construct inner HTML with frequency badge
+                el.innerHTML = `
+                    <span class="mr-2">${word}</span>
+                    <span class="bg-black/30 rounded-full px-2 py-0.5 text-xs align-middle font-black shadow-inner">
+                        ${count}
+                    </span>
+                `;
+                
+                wordCloudContainer.appendChild(el);
+            });
+        }
+
+        // Start the app
+        initApp();
+
+    </script>
+    <style>
+        /* Custom scrollbar for aesthetic */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</body>
+</html>
