@@ -576,18 +576,30 @@
                     input.disabled = true;
 
                     try {
-                        await addDoc(submissionsRef, {
+                        // Tambahkan batas waktu (timeout) 8 detik agar tidak loading selamanya
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error("Timeout")), 8000)
+                        );
+
+                        const sendPromise = addDoc(submissionsRef, {
                             word: rawWord,
                             senderId: currentUserId,
                             timestamp: serverTimestamp()
                         });
+                        
+                        // Berlomba: mana yang selesai duluan, kirim data atau timeout 8 detik
+                        await Promise.race([sendPromise, timeoutPromise]);
                         
                         input.value = '';
                         input.focus();
                         showFeedback("Kerja bagus! Kata berhasil ditangkap.");
                     } catch (err) {
                         console.error("Error adding document: ", err);
-                        showFeedback("Gagal mengirim kata. Coba lagi.", "error");
+                        if (err.message === "Timeout") {
+                            showFeedback("Gagal: Jaringan lambat/terblokir.", "error");
+                        } else {
+                            showFeedback("Gagal mengirim kata. Coba lagi.", "error");
+                        }
                     } finally {
                         submitBtn.innerHTML = originalBtnContent;
                         submitBtn.disabled = false;
